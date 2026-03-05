@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThreatSense Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #111827; color: #f9fafb; }
+    .wrap { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 16px; }
+    .panel { background: #1f2937; border-radius: 8px; padding: 12px; }
+    img { width: 100%; border-radius: 8px; border: 1px solid #374151; }
+    h2 { margin-top: 0; }
+    .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+    .LOW { background: #065f46; }
+    .MEDIUM { background: #92400e; }
+    .CRITICAL { background: #991b1b; }
+    #alerts { max-height: 70vh; overflow: auto; }
+    .alert { border-bottom: 1px solid #374151; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h2>Live Feed</h2>
+      <img src="/live_feed" alt="Live CCTV feed" />
+    </div>
+    <div class="panel">
+      <h2>Threat Indicator</h2>
+      <p>Latest Score: <span id="score">0</span></p>
+      <p>Risk: <span id="risk" class="badge LOW">LOW</span></p>
+      <h2>Alerts</h2>
+      <div id="alerts"></div>
+    </div>
+  </div>
+  <script>
+    async function refreshAlerts() {
+      const res = await fetch('/alerts');
+      const data = await res.json();
+      const alerts = data.alerts || [];
+      const panel = document.getElementById('alerts');
+      panel.innerHTML = '';
+      if (!alerts.length) {
+        panel.innerHTML = '<p>No alerts yet.</p>';
+        return;
+      }
+      const latest = alerts[alerts.length - 1];
+      document.getElementById('score').textContent = latest.score;
+      const risk = document.getElementById('risk');
+      risk.textContent = latest.title.replace('ALERT: ', '').replace(' THREAT', '');
+      risk.className = 'badge ' + risk.textContent;
+
+      alerts.slice().reverse().slice(0, 20).forEach((a) => {
+        const el = document.createElement('div');
+        el.className = 'alert';
+        el.innerHTML = `<strong>${a.title}</strong><br/>Score: ${a.score}<br/>${(a.reasons||[]).join(', ')}`;
+        panel.appendChild(el);
+      });
+    }
+    setInterval(refreshAlerts, 2000);
+    refreshAlerts();
+  </script>
+</body>
+</html>
